@@ -1,64 +1,118 @@
-
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Windows.Forms;
-using MySql.Data.MySqlClient;
+using System.Data.SqlClient;
+using System.Data.SQLite;
+using System.IO;
+
+
 
 namespace LoginBanco
 {
-	
-	public partial class MainForm : Form
-	{
-		public MainForm()
-		{
-			
-			InitializeComponent();
-			
-			
-		}
-		void BtnLoginClick(object sender, EventArgs e)
-		{
-	try
-	{
-		string usuario = txtUsuario.Text;
-		string senha = txtSenha.Text;
-		
-		if (usuario != "" && senha != "")
-		{
-			string conexaoBanco = "Server=localhost; Database=sistemalogin; Uid=root; pwd=''";
-			MySqlConnection conexao = new MySqlConnection(conexaoBanco);
-			
-			conexao.Open();
-			
-			string consultaUsuario = "select * from usuarios where usuario = @usuario and senha = @senha";
-			MySqlCommand comandoSQL = new MySqlCommand(consultaUsuario, conexao);
-			comandoSQL.Parameters.AddWithValue("@usuario", usuario);
-			comandoSQL.Parameters.AddWithValue("@senha", senha);
-			
-			int registro = Convert.ToInt32(comandoSQL.ExecuteScalar());
-			
-			if (registro > 0)
-			{
-				MessageBox.Show("Login realizado com sucesso!");
-			}
-			else
-			{
-				MessageBox.Show("Usuario ou senha inválidos!");
-			}
-			conexao.Close();
-		}
-		else
-		{
-			MessageBox.Show("Preencha os campos corretamente");
-		}
-		
-	}
-	catch(Exception ex)
-	{	
-		MessageBox.Show("Erro ao realizar login " + ex.Message);
-	}
-	
-		}
-	}
+    public partial class Form1 : Form
+    {
+        public Form1()
+        {
+            InitializeComponent();
+        }
+        class Data_base
+        {
+            private string _caminhoBanco;
+            private object txtSenha;
+            private object txtUsuario;
+
+            public Data_base(string login_dataBase = "banco.db")
+            {
+                _caminhoBanco = login_dataBase;
+                CriarBanco();
+            }
+
+
+
+            private void CriarBanco()
+            {
+                string conexaoBanco = $"Data Source={_caminhoBanco}";
+                using (var conexao = new SQLiteConnection(conexaoBanco))
+                {
+                    {
+                        conexao.Open();
+
+                        string CriarTabela = @"
+                    CREATE TABLE IF NOT EXISTS usuarios(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    usuario TEXT NOT NULL,
+                    senha TEXT NOT NULL";
+                        using (var cmd = new SQLiteCommand(CriarTabela, conexao))
+                        {
+                            cmd.ExecuteScalar();
+                        }
+                        string inserirUsuario = "INSERT INTO usuarios (usuarios, senha) VALUES (@usuario, @senha)";
+                        using (var cmd = new SQLiteCommand(inserirUsuario, conexao))
+                        {
+                            cmd.Parameters.AddWithValue("@usuario", "admin");
+                            cmd.Parameters.AddWithValue("@senha", "1234");
+                            cmd.ExecuteScalar();
+                        }
+                    }
+                }
+
+            }
+
+
+
+
+
+           
+                void BtnLoginClick(object sender, EventArgs e)
+                {
+                    try
+                    {
+                        string usuario = txtUsuario.Text;
+                        string senha = txtSenha.Text;
+
+                        if (usuario != "" && senha != "")
+                        {
+                        // Conexão com o SQLite
+                        string conexaoBanco = "Data Source=banco.sqlite";  // Caminho do banco de dados SQLite
+                        using (var conexao = new SQLiteConnection(conexaoBanco))
+                        {
+                            conexao.Open();
+
+                            // Consulta SQL para verificar usuário e senha
+                            string consultaUsuario = "SELECT COUNT(*) FROM usuarios WHERE usuario = @usuario AND senha = @senha";
+                            using (var comandoSQL = new SQLiteCommand(consultaUsuario, conexao))
+                            {
+                                // Adiciona parâmetros para evitar SQL Injection
+                                comandoSQL.Parameters.AddWithValue("@usuario", usuario);
+                                comandoSQL.Parameters.AddWithValue("@senha", senha);
+
+                                // Executa a consulta e retorna o número de registros encontrados
+                                int registro = Convert.ToInt32(comandoSQL.ExecuteScalar());
+
+                                if (registro > 0)
+                                {
+                                    MessageBox.Show("Login realizado com sucesso!");
+                                }
+                                else
+                                {
+                                    MessageBox.Show("Usuário ou senha inválidos!");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Preencha os campos corretamente");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Erro ao realizar login: " + ex.Message);
+                }
+            }
+        }
+    }
 }
+
+
+
+
